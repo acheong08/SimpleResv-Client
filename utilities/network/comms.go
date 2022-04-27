@@ -13,14 +13,16 @@ import (
 	data "github.com/acheong08/SimpleResv-Client/data"
 )
 
+var BaseURL string
+
 func init() {
-	var baseURL string = configs.ServerProtocol + configs.ServerHost + configs.ServerPort
+	BaseURL = configs.ServerProtocol + configs.ServerHost + configs.ServerPort
 }
 func postData(reqURL string, request data.Request) string {
 	// Convert data to json
-	jsonValues := json.Marshal(request)
+	jsonValues, _ := json.Marshal(request)
 	// Post data
-	resp, err := http.Post(reqURL, bytes.NewBuffer(jsonValues))
+	resp, err := http.Post(reqURL, "application/json", bytes.NewBuffer(jsonValues))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,27 +31,28 @@ func postData(reqURL string, request data.Request) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return body
+	return string(body)
 }
 
 ////////////////////////////////////////////// User ////////////////////////////////////////////////////////////
 // Get items
 func GetItems() []data.Item {
 	// Build URL
-	var reqURL string = baseURL + "/api/GetItems"
+	var reqURL string = BaseURL + "/api/GetItems"
 	// Get data from server
-	resp, err = http.Get(reqURL)
+	resp, err := http.Get(reqURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
+	rawbody, err := ioutil.ReadAll(resp.Body)
+	body := string(rawbody)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Convert JSON data to struct
 	var items []data.Item
-	err = json.Unmarshal(body, &items)
+	err = json.Unmarshal([]byte(body), &items)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,13 +62,13 @@ func GetItems() []data.Item {
 // Auth
 func AuthUser(email string, password string) bool {
 	// Set request URL
-	var reqURL string = baseURL + "/api/CheckAuth"
+	var reqURL string = BaseURL + "/api/CheckAuth"
 	// Set data
 	var request data.Request
 	request.Email = email
 	request.Password = password
 	// Post data
-	body = postData(reqURL, request)
+	body := postData(reqURL, request)
 	// Check authorization
 	if body == "true" {
 		return true
@@ -76,7 +79,7 @@ func AuthUser(email string, password string) bool {
 
 // Borrow
 func TakeItem(email string, password string, id int) string {
-	var reqURL string = baseURL + "/api/User"
+	var reqURL string = BaseURL + "/api/User"
 	var request data.Request
 	request.Action = "ToggleItem"
 	request.Email = email
@@ -89,8 +92,8 @@ func TakeItem(email string, password string, id int) string {
 }
 
 // Return
-func TakeItem(email string, password string, id int) string {
-	var reqURL string = baseURL + "/api/User"
+func ReturnItem(email string, password string, id int) string {
+	var reqURL string = BaseURL + "/api/User"
 	var request data.Request
 	request.Action = "ToggleItem"
 	request.Email = email
@@ -104,7 +107,7 @@ func TakeItem(email string, password string, id int) string {
 ////////////////////////////////////////////// Admin ////////////////////////////////////////////////////////////
 // Add user
 func AddUser(email string, password string, addemail string, addpassword string) string{
-	var reqURL string = baseURL + "/api/Admin"
+	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "AddUser"
 	request.Email = email
@@ -115,7 +118,7 @@ func AddUser(email string, password string, addemail string, addpassword string)
 }
 // Delete user
 func DeleteUser(email string, password string, addemail string, addpassword string) string {
-	var reqURL string = baseURL + "/api/Admin"
+	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "DeleteUser"
 	request.Email = email
@@ -125,8 +128,8 @@ func DeleteUser(email string, password string, addemail string, addpassword stri
 	return postData(reqURL, request)
 }
 // Add item
-func AddItem(email string, password string, name string)  {
-	var reqURL string = baseURL + "/api/Admin"
+func AddItem(email string, password string, name string) string {
+	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "AddItem"
 	request.Email = email
@@ -135,8 +138,8 @@ func AddItem(email string, password string, name string)  {
 	return postData(reqURL, request)
 }
 // Delete item
-func DeleteItem(email string, password string, name string)  {
-	var reqURL string = baseURL + "/api/Admin"
+func DeleteItem(email string, password string, name string) string {
+	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "DeleteItem"
 	request.Email = email
