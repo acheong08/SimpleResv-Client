@@ -106,7 +106,7 @@ func ReturnItem(email string, password string, id int) string {
 
 ////////////////////////////////////////////// Admin ////////////////////////////////////////////////////////////
 // Add user
-func AddUser(email string, password string, addemail string, addpassword string) string{
+func AddUser(email string, password string, addemail string, addpassword string) string {
 	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "AddUser"
@@ -116,34 +116,47 @@ func AddUser(email string, password string, addemail string, addpassword string)
 	request.AddPassword = addpassword
 	return postData(reqURL, request)
 }
+
 // Delete user
-func DeleteUser(email string, password string, addemail string, addpassword string) string {
+func DeleteUser(email string, password string, addemail string) string {
 	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "DeleteUser"
 	request.Email = email
 	request.Password = password
 	request.AddEmail = addemail
-	request.AddPassword = addpassword
 	return postData(reqURL, request)
 }
+
 // Add item
-func AddItem(email string, password string, name string) string {
+func AddItem(email string, password string, name string, details string) string {
 	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "AddItem"
 	request.Email = email
 	request.Password = password
 	request.Name = name
+	request.Details = details
 	return postData(reqURL, request)
 }
+
 // Delete item
-func DeleteItem(email string, password string, name string) string {
+func DeleteItem(email string, password string, id int) string {
 	var reqURL string = BaseURL + "/api/Admin"
 	var request data.Request
 	request.Action = "DeleteItem"
 	request.Email = email
 	request.Password = password
-	request.Name = name
+	request.Id = id
+	return postData(reqURL, request)
+}
+
+// Reset Database
+func ResetDB(email string, password string) string {
+	var reqURL string = BaseURL + "/api/Admin"
+	var request data.Request
+	request.Action = "Reset"
+	request.Email = email
+	request.Password = password
 	return postData(reqURL, request)
 }

@@ -3,6 +3,7 @@ package data
 type Item struct {
 	Id        int
 	Name      string
+	Details   string
 	Available bool
 	Status    string
 }
@@ -12,6 +13,7 @@ type Request struct {
 	Action      string
 	Id          int
 	Name        string
+	Details     string
 	Available   bool
 	Status      string
 	AddEmail    string
