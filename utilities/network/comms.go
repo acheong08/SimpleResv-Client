@@ -70,7 +70,25 @@ func AuthUser(email string, password string) bool {
 	// Post data
 	body := postData(reqURL, request)
 	// Check authorization
-	if body == "true" {
+	if body == "true" || body == "admin" {
+		return true
+	} else {
+		return false
+	}
+}
+
+// Check admin
+func CheckAdmin(email string, password string) bool {
+	// Set request URL
+	var reqURL string = BaseURL + "/api/CheckAuth"
+	// Set data
+	var request data.Request
+	request.Email = email
+	request.Password = password
+	// Post data
+	body := postData(reqURL, request)
+	// Check authorization
+	if body == "admin" {
 		return true
 	} else {
 		return false
