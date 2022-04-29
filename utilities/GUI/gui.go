@@ -3,32 +3,186 @@ package GUI
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/validation"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
+	data "github.com/acheong08/SimpleResv-Client/data"
 	network "github.com/acheong08/SimpleResv-Client/utilities/network"
 
-	"fmt"
+	"strconv"
 )
 
 var a fyne.App
 var mainWindow fyne.Window
 
+var savedEmail string
+var savedPassword string
+
+var isAdmin bool
+
 func Run() {
 	//Define app and window
 	a = app.NewWithID("tech.duti.SimpleResv")
-	mainWindow = a.NewWindow("SimpleResv Login")
+	a.SetIcon(theme.AccountIcon())
+	mainWindow = a.NewWindow("SimpleResv")
 	//Set main window as master
 	mainWindow.SetMaster()
-	//Set window content
-	mainWindow.SetContent(auth())
-	//Set size
-	mainWindow.Resize(fyne.NewSize(640, 200))
-	//Show window
-	mainWindow.ShowAndRun()
+	// Start authentication
+	auth(0)
 }
 
-func auth() fyne.CanvasObject {
+// Window handlers
+
+func auth(num int) {
+	//Set window title
+	mainWindow.SetTitle("SimpleResv | Login")
+	//Set window content
+	mainWindow.SetContent(authCanvas())
+	//Set size
+	fixedResize(640, 200)
+	//Show window. Run only if first
+	if num == 0 {
+		mainWindow.ShowAndRun()
+	} else {
+		mainWindow.Show()
+	}
+}
+
+func itemIndex() {
+	// Reconfigure window
+	mainWindow.SetTitle("SimpleResv | Available")
+	// Resize window
+	fixedResize(640, 460)
+	// Reconfigure content
+	mainWindow.SetContent(itemIndexCanvas()) // To be replaced by welcome screen
+	// Show window again
+	mainWindow.Show()
+}
+
+func reservedIndex() {
+	// Reconfigure window
+	mainWindow.SetTitle("SimpleResv | Reserved by you")
+	// Resize window
+	fixedResize(640, 460)
+	// Reconfigure content
+	mainWindow.SetContent(reservedIndexCanvas()) // To be replaced by welcome screen
+	// Show window again
+	mainWindow.Show()
+}
+
+// Make menu
+func makeMenu() *fyne.MainMenu {
+	// Menu items
+	// Account stuff
+	logout := fyne.NewMenuItem("Logout", func() {
+		// Hide current window
+		mainWindow.Hide()
+		// Clear saved credentials
+		savedEmail = ""
+		savedPassword = ""
+		// Refresh menu
+		mainWindow.SetMainMenu(makeMenu())
+		// Go back to authentication window
+		auth(1)
+	})
+	// Window stuff
+	available := fyne.NewMenuItem("Available", func() {
+		mainWindow.Hide()
+		itemIndex()
+	})
+	reserved := fyne.NewMenuItem("Reserved", func() {
+		mainWindow.Hide()
+		reservedIndex()
+	})
+	// Admin stuff
+	if isAdmin {
+		addItem := fyne.NewMenuItem("Add Item", func() {
+			// Form items
+			itemName := widget.NewEntry()
+			itemDesc := widget.NewMultiLineEntry()
+			// Form item list
+			formItems := []*widget.FormItem{
+				widget.NewFormItem("Name", itemName),
+				widget.NewFormItem("Description", itemDesc),
+			}
+			// Create form
+			form := dialog.NewForm("Add Item", "Add", "Cancel", formItems, func(b bool) {
+				if !b {
+					return
+				}
+				addItem(itemName.Text, itemDesc.Text)
+			}, mainWindow)
+			// Set size and show
+			form.Resize(fyne.NewSize(400, 250))
+			form.Show()
+		})
+		delItem := fyne.NewMenuItem("Delete Item", func() {
+			// Form items
+			itemID := widget.NewEntry()
+			// Form item list
+			formItems := []*widget.FormItem{
+				widget.NewFormItem("ID: ", itemID),
+			}
+			// Show form
+			dialog.ShowForm("Delete Item", "Delete", "Cancel", formItems, func(b bool) {
+				if !b {
+					return
+				}
+				intItemID, _ := strconv.Atoi(itemID.Text)
+				delItem(intItemID)
+			}, mainWindow)
+		})
+		// Settings
+		settingsItem := fyne.NewMenuItem("Settings", func() {
+			w := a.NewWindow("Fyne Settings")
+			w.SetContent(settings.NewSettings().LoadAppearanceScreen(mainWindow))
+			w.Resize(fyne.NewSize(480, 480))
+			w.Show()
+		})
+		// Make menu with logout as item
+		account := fyne.NewMenu("Account", logout)
+		// Make menu for window stuff
+		windows := fyne.NewMenu("Windows", available, reserved)
+		// Settings only in desktop
+		if !fyne.CurrentDevice().IsMobile() {
+			account.Items = append(account.Items, fyne.NewMenuItemSeparator(), settingsItem)
+		}
+		admin := fyne.NewMenu("Admin", addItem, delItem)
+		return fyne.NewMainMenu(
+			account,
+			windows,
+			admin,
+		)
+
+	} else {
+		// Settings
+		settingsItem := fyne.NewMenuItem("Settings", func() {
+			w := a.NewWindow("Fyne Settings")
+			w.SetContent(settings.NewSettings().LoadAppearanceScreen(mainWindow))
+			w.Resize(fyne.NewSize(480, 480))
+			w.Show()
+		})
+		// Make menu with logout as item
+		account := fyne.NewMenu("Account", logout)
+		// Make menu for window stuff
+		windows := fyne.NewMenu("Windows", available, reserved)
+		// Settings only in desktop
+		if !fyne.CurrentDevice().IsMobile() {
+			account.Items = append(account.Items, fyne.NewMenuItemSeparator(), settingsItem)
+		}
+		return fyne.NewMainMenu(
+			account,
+			windows,
+		)
+	}
+}
+// Canvases
+func authCanvas() fyne.CanvasObject {
 	// Enter email
 	email := widget.NewEntry()
 	email.SetPlaceHolder("example@example.com")
@@ -42,14 +196,10 @@ func auth() fyne.CanvasObject {
 			{Text: "Email", Widget: email, HintText: "Email address must be valid"},
 		},
 		OnCancel: func() {
-			//Debug output
-			fmt.Println("Cancelled")
 			//Close app
 			mainWindow.Close()
 		},
 		OnSubmit: func() {
-			//Debug output
-			fmt.Println("Form submitted")
 			// Send requests
 			if network.AuthUser(email.Text, password.Text) {
 				if network.CheckAdmin(email.Text, password.Text) {
@@ -57,16 +207,25 @@ func auth() fyne.CanvasObject {
 					fyne.CurrentApp().SendNotification(&fyne.Notification{
 						Title: "Authenticated as Admin!",
 					})
+					// Save status
+					isAdmin = true
 				} else {
 					// Send notification if success
 					fyne.CurrentApp().SendNotification(&fyne.Notification{
 						Title: "Authenticated as User!",
 					})
+					// Save status
+					isAdmin = false
 				}
+				// Save authentication to global variable
+				savedEmail = email.Text
+				savedPassword = password.Text
 				// Hide done authentication
 				mainWindow.Hide()
+				// Make a top menu
+				mainWindow.SetMainMenu(makeMenu())
 				// Go to main window
-				master()
+				itemIndex()
 			} else {
 				// Send notification and do nothing
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
@@ -81,17 +240,97 @@ func auth() fyne.CanvasObject {
 	return form
 }
 
-func master() {
-	// Reconfigure window
-	mainWindow.SetTitle("SimpleResv")
-	mainWindow.Resize(fyne.NewSize(640, 460))
+func itemIndexCanvas() fyne.CanvasObject {
+	// Get items from server and set to list of item struct
+	var items []data.Item = network.GetItems()
+	// Create grid
+	grid := container.New(layout.NewAdaptiveGridLayout(4))
+	// Loop through items
+	for _, itemVals := range items {
+		// Only show if not reserved
+		if itemVals.Available {
+			// Set a new id variable to pass by value
+			id := itemVals.Id
+			// Define anonymous takeItem function
+			anonTake := func() {
+				takeItem(id)
+			}
+			// Create card for each item
+			button := widget.NewButton("Take", anonTake)
+			strId := "ID: " + strconv.Itoa(itemVals.Id)
+			label := widget.NewLabel(string("Status: " + itemVals.Status + "\nDetails: " + itemVals.Details))
+			submit := container.New(layout.NewGridLayoutWithRows(2), label, button)
+			grid.Add(widget.NewCard(itemVals.Name, strId, submit))
+		}
+	}
+	// Create a button to refresh the data
+	refreshBtn := widget.NewButton("Refresh", func() { itemIndex() })
+	grid.Add(refreshBtn)
+	// Make scroll
+	scrollCont := container.NewVScroll(grid)
+	// Return grids
+	return scrollCont
+}
+
+func reservedIndexCanvas() fyne.CanvasObject {
+	// Get items from server and set to list of item struct
+	var items []data.Item = network.GetItems()
+	// Create grid
+	grid := container.New(layout.NewAdaptiveGridLayout(4))
+	// Loop through items
+	for _, itemVals := range items {
+		// Only show if not reserved
+		if itemVals.Status == savedEmail {
+			// Set a new id variable to pass by value
+			id := itemVals.Id
+			// Define anonymous takeItem function
+			anonReturn := func() {
+				returnItem(id)
+			}
+			// Create card for each item
+			button := widget.NewButton("Return", anonReturn)
+			strId := "ID: " + strconv.Itoa(itemVals.Id)
+			label := widget.NewLabel(string("Status: " + itemVals.Status + "\nDetails: " + itemVals.Details))
+			submit := container.New(layout.NewGridLayoutWithRows(2), label, button)
+			grid.Add(widget.NewCard(itemVals.Name, strId, submit))
+		}
+	}
+	// Create a button to refresh the data
+	refreshBtn := widget.NewButton("Refresh", func() { reservedIndex() })
+	grid.Add(refreshBtn)
+	// Make scroll
+	scrollCont := container.NewVScroll(grid)
+	// Return grids
+	return scrollCont
+}
+
+// Utilities
+func fixedResize(width float32, height float32) {
+	// Set size
+	mainWindow.Resize(fyne.NewSize(width, height))
 	// This fixes window size not updating
 	mainWindow.SetFixedSize(true)
 	mainWindow.Show()
 	mainWindow.Hide()
 	mainWindow.SetFixedSize(false)
-	// Reconfigure content
-	mainWindow.SetContent(widget.NewLabel("Hello world"))
-	// Show window again
-	mainWindow.Show()
+}
+
+func takeItem(id int) {
+	// Send request
+	network.TakeItem(savedEmail, savedPassword, id)
+	// Refresh content
+	mainWindow.SetContent(itemIndexCanvas())
+}
+
+func returnItem(id int) {
+	// Send request
+	network.ReturnItem(savedEmail, savedPassword, id)
+	// Refresh content
+	mainWindow.SetContent(reservedIndexCanvas())
+}
+func addItem(name string, details string) {
+	network.AddItem(savedEmail, savedPassword, name, details)
+}
+func delItem(id int)  {
+	network.DeleteItem(savedEmail, savedPassword, id)
 }
