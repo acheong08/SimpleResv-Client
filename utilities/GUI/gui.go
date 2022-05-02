@@ -85,6 +85,8 @@ func makeMenu() *fyne.MainMenu {
 		// Clear saved credentials
 		savedEmail = ""
 		savedPassword = ""
+		// Remove admin permission
+		isAdmin = false
 		// Refresh menu
 		mainWindow.SetMainMenu(makeMenu())
 		// Go back to authentication window
@@ -101,6 +103,7 @@ func makeMenu() *fyne.MainMenu {
 	})
 	// Admin stuff
 	if isAdmin {
+		// Item management
 		addItem := fyne.NewMenuItem("Add Item", func() {
 			// Form items
 			itemName := widget.NewEntry()
@@ -121,6 +124,7 @@ func makeMenu() *fyne.MainMenu {
 			form.Resize(fyne.NewSize(400, 250))
 			form.Show()
 		})
+		// Deletion
 		delItem := fyne.NewMenuItem("Delete Item", func() {
 			// Form items
 			itemID := widget.NewEntry()
@@ -137,6 +141,50 @@ func makeMenu() *fyne.MainMenu {
 				delItem(intItemID)
 			}, mainWindow)
 		})
+		// User management
+		userAdd := fyne.NewMenuItem("Add User", func() {
+			// Form items
+			email := widget.NewEntry()
+			email.SetPlaceHolder("example@example.com")
+			email.Validator = validation.NewRegexp(`\w{1,}@\w{1,}\.\w{1,4}`, "not a valid email")
+			password := widget.NewPasswordEntry()
+			password.SetPlaceHolder("Password")
+			// Create list for form items
+			formItems := []*widget.FormItem{
+				widget.NewFormItem("Email", email),
+				widget.NewFormItem("Password", password),
+			}
+			//Create and show dialog form
+			form := dialog.NewForm("Add User", "Add", "Cancel", formItems, func(b bool) {
+				if !b {
+					return
+				}
+				addUser(email.Text, password.Text)
+			}, mainWindow)
+			// Set size and show
+			form.Resize(fyne.NewSize(400, 250))
+			form.Show()
+		})
+		userDel := fyne.NewMenuItem("Delete User", func() {
+			// Form items
+			email := widget.NewEntry()
+			email.SetPlaceHolder("example@example.com")
+			email.Validator = validation.NewRegexp(`\w{1,}@\w{1,}\.\w{1,4}`, "not a valid email")
+			// Create list for form items
+			formItems := []*widget.FormItem{
+				widget.NewFormItem("Email", email),
+			}
+			//Create and show dialog form
+			form := dialog.NewForm("Delete User", "Delete", "Cancel", formItems, func(b bool) {
+				if !b {
+					return
+				}
+				delUser(email.Text)
+			}, mainWindow)
+			// Set size and show
+			form.Resize(fyne.NewSize(400, 250))
+			form.Show()
+		})
 		// Settings
 		settingsItem := fyne.NewMenuItem("Settings", func() {
 			w := a.NewWindow("Fyne Settings")
@@ -152,7 +200,7 @@ func makeMenu() *fyne.MainMenu {
 		if !fyne.CurrentDevice().IsMobile() {
 			account.Items = append(account.Items, fyne.NewMenuItemSeparator(), settingsItem)
 		}
-		admin := fyne.NewMenu("Admin", addItem, delItem)
+		admin := fyne.NewMenu("Admin", addItem, delItem, userAdd, userDel)
 		return fyne.NewMainMenu(
 			account,
 			windows,
@@ -181,6 +229,7 @@ func makeMenu() *fyne.MainMenu {
 		)
 	}
 }
+
 // Canvases
 func authCanvas() fyne.CanvasObject {
 	// Enter email
@@ -315,22 +364,40 @@ func fixedResize(width float32, height float32) {
 	mainWindow.SetFixedSize(false)
 }
 
+//User items
 func takeItem(id int) {
 	// Send request
 	network.TakeItem(savedEmail, savedPassword, id)
 	// Refresh content
 	mainWindow.SetContent(itemIndexCanvas())
 }
-
 func returnItem(id int) {
 	// Send request
 	network.ReturnItem(savedEmail, savedPassword, id)
 	// Refresh content
 	mainWindow.SetContent(reservedIndexCanvas())
 }
+
+//Admin items
 func addItem(name string, details string) {
-	network.AddItem(savedEmail, savedPassword, name, details)
+	notifyMessage(network.AddItem(savedEmail, savedPassword, name, details))
 }
-func delItem(id int)  {
-	network.DeleteItem(savedEmail, savedPassword, id)
+func delItem(id int) {
+	notifyMessage(network.DeleteItem(savedEmail, savedPassword, id))
+}
+
+//Admin Users
+func addUser(email string, password string) {
+	notifyMessage(network.AddUser(savedEmail, savedPassword, email, password))
+}
+func delUser(email string) {
+	notifyMessage(network.DeleteUser(savedEmail, savedPassword, email))
+}
+
+// Notify status
+func notifyMessage(text string){
+	fyne.CurrentApp().SendNotification(&fyne.Notification{
+		Title: "SimpleResv Action",
+		Content: text,
+	})
 }
