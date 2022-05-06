@@ -1,5 +1,5 @@
 package configs
 
-const ServerProtocol string = "https://"
-const ServerHost string = "simpleresv.duti.tech"
-const ServerPort string = ":443"
+const ServerProtocol string = "http://"
+const ServerHost string = "localhost"
+const ServerPort string = ":10000"

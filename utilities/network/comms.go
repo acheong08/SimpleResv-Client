@@ -169,6 +169,24 @@ func DeleteItem(email string, password string, id int) string {
 	return postData(reqURL, request)
 }
 
+// Get list of users
+func GetUserList(email string, password string) []data.Account {
+	// Get response
+	var reqURL string = BaseURL + "/api/Admin"
+	var request data.Request
+	request.Email = email
+	request.Password = password
+	request.Action = "GetAccounts"
+	response := postData(reqURL, request)
+	// parse response
+	var accounts []data.Account
+	err := json.Unmarshal([]byte(response), &accounts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return accounts
+}
+
 // Reset Database
 func ResetDB(email string, password string) string {
 	var reqURL string = BaseURL + "/api/Admin"

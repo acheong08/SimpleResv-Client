@@ -75,6 +75,17 @@ func reservedIndex() {
 	mainWindow.Show()
 }
 
+func userList() {
+	// Make new window
+	w := a.NewWindow("SimpleResv | User List")
+	// Resize window
+	w.Resize(fyne.NewSize(100, 400))
+	// Configure content
+	w.SetContent(userListCanvas())
+	// Show window
+	w.Show()
+}
+
 // Make menu
 func makeMenu() *fyne.MainMenu {
 	// Menu items
@@ -185,6 +196,9 @@ func makeMenu() *fyne.MainMenu {
 			form.Resize(fyne.NewSize(400, 250))
 			form.Show()
 		})
+		listUser := fyne.NewMenuItem("User list", func() {
+			userList()
+		})
 		// Settings
 		settingsItem := fyne.NewMenuItem("Settings", func() {
 			w := a.NewWindow("Fyne Settings")
@@ -200,7 +214,7 @@ func makeMenu() *fyne.MainMenu {
 		if !fyne.CurrentDevice().IsMobile() {
 			account.Items = append(account.Items, fyne.NewMenuItemSeparator(), settingsItem)
 		}
-		admin := fyne.NewMenu("Admin", addItem, delItem, userAdd, userDel)
+		admin := fyne.NewMenu("Admin", addItem, delItem, userAdd, userDel, listUser)
 		return fyne.NewMainMenu(
 			account,
 			windows,
@@ -223,10 +237,16 @@ func makeMenu() *fyne.MainMenu {
 		if !fyne.CurrentDevice().IsMobile() {
 			account.Items = append(account.Items, fyne.NewMenuItemSeparator(), settingsItem)
 		}
-		return fyne.NewMainMenu(
-			account,
-			windows,
-		)
+		if savedEmail == "" {
+			return fyne.NewMainMenu(
+				account,
+			)
+		} else {
+			return fyne.NewMainMenu(
+				account,
+				windows,
+			)
+		}
 	}
 }
 
@@ -329,7 +349,7 @@ func reservedIndexCanvas() fyne.CanvasObject {
 	// Loop through items
 	for _, itemVals := range items {
 		// Only show if not reserved
-		if itemVals.Status == savedEmail {
+		if itemVals.Status == savedEmail || isAdmin {
 			// Set a new id variable to pass by value
 			id := itemVals.Id
 			// Define anonymous takeItem function
@@ -353,6 +373,25 @@ func reservedIndexCanvas() fyne.CanvasObject {
 	return scrollCont
 }
 
+func userListCanvas() fyne.CanvasObject {
+	// Make a container
+	cont := container.New(layout.NewVBoxLayout())
+	// Get list
+	accounts := network.GetUserList(savedEmail, savedPassword)
+	// Put into string list
+	var accountlist string = ""
+	for _, accountVals := range accounts{
+		accountlist = accountlist + "\n" + accountVals.Email
+	}
+	// Put list into labels
+	list := widget.NewLabel(accountlist)
+	// Put label into container
+	cont.Add(list)
+	// Make container scrollable
+	scrollCont := container.NewVScroll(cont)
+	// Return
+	return scrollCont
+}
 // Utilities
 func fixedResize(width float32, height float32) {
 	// Set size
@@ -395,9 +434,9 @@ func delUser(email string) {
 }
 
 // Notify status
-func notifyMessage(text string){
+func notifyMessage(text string) {
 	fyne.CurrentApp().SendNotification(&fyne.Notification{
-		Title: "SimpleResv Action",
+		Title:   "SimpleResv Action",
 		Content: text,
 	})
 }

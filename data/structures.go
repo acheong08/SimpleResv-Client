@@ -1,4 +1,4 @@
-package data
+package Data
 
 type Item struct {
 	Id        int
@@ -18,4 +18,7 @@ type Request struct {
 	Status      string
 	AddEmail    string
 	AddPassword string
+}
+type Account struct {
+	Email string
 }
